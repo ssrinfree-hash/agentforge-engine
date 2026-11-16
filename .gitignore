@@ -6,3 +6,4 @@ game/frames/
 .cache/
 __pycache__/
 *.pyc
+core/
