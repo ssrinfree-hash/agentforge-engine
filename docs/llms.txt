@@ -1,0 +1,73 @@
+# AgentForge — индекс для LLM-агентов (llms.txt)
+
+AgentForge (afengine) — 3D-игровой движок на C++17 для ИИ-агентов, ноль внешних
+зависимостей. «Пользователь» — не человек у монитора: агент строит сцену и
+управляет симуляцией JSON-командами по stdio, «экран» — машиночитаемый
+FrameReport. Сцена — текстовый JSON (.afscene), игровая логика — C ABI плагины.
+
+## Транспорт
+
+Запуск: `afengine serve` (флаги: --scene S --catalog C --weights W).
+Один запрос = одна строка stdin {"cmd":"..."}; один ответ = одна строка stdout.
+Сеанс живёт до {"cmd":"quit"} (ответ содержит "bye":true).
+
+## Ноды (6 типов, полные поля в docs/SCENE_FORMAT.md)
+
+- Node — логический контейнер/группировка; props: name, enabled.
+- Node3D — трансформ: position [x,y,z], rotation_euler_deg [3] (градусы, R=Ry·Rx·Rz),
+  rotation_quat_xyzw [4], scale; иерархия: мир = родитель × локальная.
+- MeshInstance3D — меш: mesh {primitive: box|plane|sphere|capsule (+size/radius/height)}
+  или {file:"assets/x.obj"}; color [r,g,b], visible, static_body (статичный
+  коллайдер), body (динамическое тело), mesh_class (семантическая метка), velocity.
+- Camera3D — камера: fov_deg=60, near_z=0.05, far_z=200, active; смотрит вдоль −Z.
+- Light3D — направленный свет (одна активная): color, intensity; направление = поворот.
+- Animator — keyframe-трек на 3D-ноду: target_path (путь СРЕДИ ДЕТЕЙ Animator'а),
+  keyframes [{t, pos:[3], rot_quat_xyzw:[4], scale:[3]}], length, playing, loop,
+  anim_class; объект-цель добавляй ребёнком Animator'а.
+
+## 5 главных команд
+
+- {"cmd":"schema"} → вся self-схема: типы нод, mesh_spec, команды, примеры.
+- {"cmd":"node.add","parent":"root","node":{"type":"MeshInstance3D","name":"Crate",
+  "mesh":{"primitive":"box","size":[1,1,1]},"props":{"position":[0,0.5,-3],
+  "color":[0.8,0.4,0.1],"static_body":true,"mesh_class":"crate"}}}
+  → {"ok":true,"path":"root/Crate","id":2}
+- {"cmd":"sim.step","frames":120,"dt":0.016} → {"ok":true,"events":[...],
+  "scores":{...},"time":2.0}; физика: гравитация −Y, земля y=0, события
+  ground_hit/collision.
+- {"cmd":"frame.capture","width":640,"height":360,"save":"frame.ppm"} →
+  {"ok":true,"frame":{objects:[{class,screen_bbox,depth_range,visible,world_pos}],
+  stats:{drawn_tris,render_ms,pixel_hash},scores}} — это и есть «экран» агента.
+- {"cmd":"scene.load","path":"scene.afscene"} → загрузка JSON-сцены с диска
+  (пути к мешам относительны рабочему каталогу afengine; запускай его из
+  каталога сцены).
+
+Также есть: scene.new/save/tree, node.set/get/remove, sim.reset, raycast
+(origin/dir/max_dist → hit/path/point/dist), asset.search (text→топ-K ассетов
+ModelNet40), scores.set, plugin.load/plugin.call (C ABI .so), selftest, benchmark,
+quit.
+
+## Документация (относительные пути от этого файла)
+
+- docs/AGENT_PROTOCOL.md — полный справочник протокола: каждая команда с
+  примерами запрос/ответ, таблица ошибок, типовой сеанс агента, правила путей.
+- docs/SCENE_FORMAT.md — формат .afscene: все 6 типов нод, сахар-поля,
+  mesh-спека, keyframes Animator'а, полная пример-сцена.
+- docs/PLUGIN_ABI.md — C ABI плагина: struct AfApi, af_plugin_init/update/event,
+  жизненный цикл, минимальный пример + сборка g++.
+- scripts/blender/blender_bridge.py + scripts/blender/README_BLENDER.md —
+  экспорт сцены из Blender в .afscene + assets/*.obj.
+
+## 5 правил агента
+
+1. schema first: начинай сеанс с {"cmd":"schema"} и не угадывай имена полей.
+2. validate ok: проверяй "ok":true в каждом ответе; при ok:false читай "error"
+   и исправляй запрос (частые причины — путь с лишним префиксом root/, дубликат
+   имени, плохая mesh-спека).
+3. use mesh_class: ставь семантическую метку на каждый меш — она попадает в
+   FrameReport (class) и делает кадр читаемым числами.
+4. headless: движок не открывает окон — вся «визуальность» через frame.capture
+   и frame.report; логи движка идут в stderr, ответы — в stdout.
+5. FrameReport = экран: чтобы «видеть» сцену, читай objects[].screen_bbox /
+   depth_range / visible и сравнивай кадры по stats.pixel_hash; PPM — только
+   для человека.

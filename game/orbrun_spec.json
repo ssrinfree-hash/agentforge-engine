@@ -1,0 +1,96 @@
+{
+  "arena": {
+    "ground_size": 40.0,
+    "wall_color": [
+      0.15,
+      0.15,
+      0.2
+    ],
+    "ground_color": [
+      0.05,
+      0.05,
+      0.08
+    ]
+  },
+  "player": {
+    "radius": 0.6,
+    "height": 1.4,
+    "color": [
+      0.2,
+      0.8,
+      1.0
+    ],
+    "speed": 8.5
+  },
+  "coins": {
+    "count": 12,
+    "radius": 0.4,
+    "ring_radius": 6.0,
+    "color": [
+      1.0,
+      0.85,
+      0.1
+    ],
+    "spin_seconds": 2.5
+  },
+  "camera": {
+    "position": [
+      0.0,
+      8.0,
+      10.0
+    ],
+    "look_deg": [
+      -35.0,
+      0.0,
+      0.0
+    ],
+    "fov_deg": 60.0
+  },
+  "light": {
+    "euler_deg": [
+      -45.0,
+      30.0,
+      0.0
+    ],
+    "intensity": 1.8
+  },
+  "rules": {
+    "pickup_dist": 1.5,
+    "max_seconds": 60,
+    "win_score": 12
+  },
+  "phases": [
+    {
+      "name": "design",
+      "goal": "Define layout and balance"
+    },
+    {
+      "name": "assets",
+      "goal": "Generate textures and models"
+    },
+    {
+      "name": "scene",
+      "goal": "Construct 3D environment"
+    },
+    {
+      "name": "logic",
+      "goal": "Implement movement and collisions"
+    },
+    {
+      "name": "test",
+      "goal": "Verify win/lose conditions"
+    },
+    {
+      "name": "report",
+      "goal": "Output performance metrics"
+    }
+  ],
+  "obstacles": {
+    "count": 3,
+    "size": [
+      2.0,
+      3.0,
+      2.0
+    ]
+  }
+}
