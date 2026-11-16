@@ -24,7 +24,7 @@
 
 ```bash
 # сборка (Linux/macOS, g++ / clang++)
-git clone https://github.com/fkfkfmfkgkg/agentforge-engine.git
+git clone https://github.com/ssrinfree-hash/agentforge-engine.git
 cd agentforge-engine && make -j
 ./build/afengine selftest        # 20/20 проверок ядра
 
@@ -67,7 +67,7 @@ python3 scripts/orbrun_build.py               # 6 фаз через проток
 
 ```bash
 # бинарник без сборки (linux x64):
-wget https://github.com/fkfkfmfkgkg/agentforge-engine/releases/download/v0.1.0/afengine-linux64.tar.gz
+wget https://github.com/ssrinfree-hash/agentforge-engine/releases/download/v0.1.0/afengine-linux64.tar.gz
 tar xzf afengine-linux64.tar.gz && ./afengine selftest
 ```
 

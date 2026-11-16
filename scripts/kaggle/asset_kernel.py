@@ -91,35 +91,14 @@ def scan_dataset(root):
             cls = p.parent.parent.name
         if cls in ("train", "test", "ModelNet40"):
             cls = p.parent.parent.parent.name if len(p.parts) > 3 else cls
-        verts = faces = 0
-        mn = [1e9] * 3
-        mx = [-1e9] * 3
         try:
-            with open(p, "r", errors="ignore") as f:
-                header = f.readline()
-                if not header.startswith(("OFF", "COFF")):
-                    continue
-                nv, nf, _ = header.split()[1:4] if len(header.split()) >= 3 else (0, 0, 0)
-                nv, nf = int(nv), int(nf)
-                verts_read = 0
-                for line in f:
-                    parts = line.split()
-                    if not parts:
-                        continue
-                    if verts_read < nv:
-                        if len(parts) >= 3:
-                            x, y, z = float(parts[0]), float(parts[1]), float(parts[2])
-                            for k, v in enumerate((x, y, z)):
-                                mn[k] = min(mn[k], v)
-                                mx[k] = max(mx[k], v)
-                            verts_read += 1
-                        continue
-                    if parts[0].isdigit() and len(parts) >= 4:
-                        faces += 1
-            verts = verts_read
+            st = parse_off(str(p))
+            if st is None:
+                continue
         except Exception as e:  # noqa: BLE001
             log(f"skip {p.name}: {e}")
             continue
+        verts, faces, mn, mx = st
         if verts == 0:
             continue
         entries.append({
@@ -134,6 +113,38 @@ def scan_dataset(root):
         if (i + 1) % 1000 == 0:
             log(f"scanned {i + 1}/{len(off_files)}")
     return entries
+
+
+def parse_off(path):
+    """Robust OFF-парсер: токен-поток (заголовок может быть 'OFF' или 'OFF nv nf')."""
+    with open(path, "r", errors="ignore") as f:
+        tok = f.read().split()
+    if not tok or tok[0] not in ("OFF", "COFF"):
+        return None
+    # после OFF может быть 2 или 3 целых числа (nv, nf[, ne]); ModelNet40 пишет "OFF nv nf"
+    idx = 1
+    hdr = []
+    while len(hdr) < 3 and idx < len(tok) and "." not in tok[idx] and "e" not in tok[idx].lower():
+        hdr.append(int(tok[idx]))
+        idx += 1
+    if len(hdr) < 2:
+        raise ValueError("bad OFF header")
+    nv, nf = hdr[0], hdr[1]
+    i = idx                                 # первая вершина
+    mn = [1e9] * 3
+    mx = [-1e9] * 3
+    for _ in range(nv):
+        x, y, z = float(tok[i]), float(tok[i + 1]), float(tok[i + 2])
+        for k, v in enumerate((x, y, z)):
+            mn[k] = min(mn[k], v)
+            mx[k] = max(mx[k], v)
+        i += 3
+    faces = 0
+    for _ in range(nf):
+        cnt = int(tok[i])
+        i += 1 + cnt
+        faces += 1
+    return nv, faces, mn, mx
 
 
 def main():
